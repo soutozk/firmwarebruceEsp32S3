@@ -1,6 +1,6 @@
 #include "tft.h"
 
-#if defined(USE_ARDUINO_GFX)
+#if defined(USE_ARDUINO_GFX) && !defined(BOARD_JC3248W535EN)
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
@@ -13,6 +13,9 @@ static SemaphoreHandle_t tftMutex;
     xSemaphoreGiveRecursive(tftMutex);
 
 tft_display::tft_display(int16_t _W, int16_t _H) : _height(_H), _width(_W) {
+    if (tftMutex == nullptr) {
+        tftMutex = xSemaphoreCreateRecursiveMutex();
+    }
     // clang-format off
 #if TFT_DATABUS_N == 3
     #if TFT_DISPLAY_DRIVER_N != 49
@@ -125,6 +128,9 @@ tft_display::tft_display(int16_t _W, int16_t _H) : _height(_H), _width(_W) {
         TFT_ROW_OFS1,
         TFT_COL_OFS2,
         TFT_ROW_OFS2
+#if TFT_DISPLAY_DRIVER_N == 22 && defined(TFT_INIT_OPERATIONS)
+        , TFT_INIT_OPERATIONS, TFT_INIT_OPERATIONS_LEN
+#endif
     );
 #endif
 

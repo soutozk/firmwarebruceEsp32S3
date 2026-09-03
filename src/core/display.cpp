@@ -619,6 +619,13 @@ int loopOptions(
             displayScrollingText(txt, coord, true);
         }
 
+#ifdef BOARD_JC3248W535EN
+        // loopOptions owns the active menu render loop, so this is the single
+        // frame boundary for every Bruce menu. The adapter's dirty flag and
+        // 25 FPS limiter make unchanged calls free.
+        tft.present();
+#endif
+
 // Checks ESC Press first, to not exit after PrevPress is processed
 // PrevPress condition is a StickCPlus workaround, as it uses the same button for Prev and Esc
 // Same happens to Core and some other boards

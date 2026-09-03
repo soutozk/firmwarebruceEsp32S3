@@ -14,7 +14,11 @@ class tft_logger;
 #include "tftespi.h"
 
 #elif defined(USE_ARDUINO_GFX)
+#if defined(BOARD_JC3248W535EN)
+#include "jc3248w535en_display.h"
+#else
 #include "ardgfx.h"
+#endif
 
 #elif defined(USE_LOVYANGFX)
 #include "lovyan.h"

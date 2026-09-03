@@ -8,6 +8,9 @@ class tft_logger;
 
 #if defined(USE_ARDUINO_GFX)
 #include "tft_defines.h"
+#if defined(BOARD_JC3248W535EN)
+#include "jc3248w535en.h"
+#endif
 #include <Arduino_GFX_Library.h>
 #include <algorithm>
 #include <cmath>
@@ -34,7 +37,9 @@ class tft_logger;
         #error "Missing Macros, please check the definitions of: TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, TFT_MISO"
     #endif
 #elif TFT_DATABUS_N == 1
+    #ifndef TFT_DATABUS
     #define TFT_DATABUS Arduino_ESP32QSPI
+    #endif
     #if !defined(TFT_RST) || !defined(TFT_ROTATION) || !defined(TFT_IPS) || !defined(TFT_WIDTH) ||               \
         !defined(TFT_HEIGHT) || !defined(TFT_COL_OFS1) || !defined(TFT_ROW_OFS1) || !defined(TFT_COL_OFS2) ||    \
         !defined(TFT_ROW_OFS2)
@@ -200,7 +205,9 @@ class tft_logger;
     #elif TFT_DISPLAY_DRIVER_N == 21
         #define TFT_DISPLAY_DRIVER Arduino_JBT6K71
     #elif TFT_DISPLAY_DRIVER_N == 22
+        #ifndef TFT_DISPLAY_DRIVER
         #define TFT_DISPLAY_DRIVER Arduino_AXS15231B
+        #endif
     #elif TFT_DISPLAY_DRIVER_N == 23
         #define TFT_DISPLAY_DRIVER Arduino_ILI9331
     #elif TFT_DISPLAY_DRIVER_N == 24

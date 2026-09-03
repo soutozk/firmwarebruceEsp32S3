@@ -153,12 +153,19 @@ std::vector<Option> options;
 tft_logger tft = tft_logger(); // Invoke custom library
 tft_sprite sprite = tft_sprite(&tft);
 tft_sprite draw = tft_sprite(&tft);
+#if defined(BOARD_JC3248W535EN)
+// The validated panel is portrait (320x480), while Bruce's logical canvas is
+// landscape.  The board adapter performs the software rotation at present().
+volatile int tftWidth = 480;
+volatile int tftHeight = 320;
+#else
 volatile int tftWidth = TFT_HEIGHT;
 #ifdef HAS_TOUCH
 volatile int tftHeight =
     TFT_WIDTH - 20; // 20px to draw the TouchFooter(), were the btns are being read in touch devices.
 #else
 volatile int tftHeight = TFT_WIDTH;
+#endif
 #endif
 #else
 tft_logger tft;
@@ -210,6 +217,11 @@ void _setup_gpio() {}
  *********************************************************************/
 void _post_setup_gpio() __attribute__((weak));
 void _post_setup_gpio() {}
+
+// Runs immediately after the panel controller is initialized and before the
+// first frame. Boards can use it to enable their backlight in the right order.
+void _post_display_gpio() __attribute__((weak));
+void _post_display_gpio() {}
 
 /*********************************************************************
  **  Function: _pre_storage_gpio()
@@ -280,6 +292,9 @@ void boot_screen() {
  *********************************************************************/
 void boot_screen_anim() {
     boot_screen();
+#ifdef BOARD_JC3248W535EN
+    tft.present();
+#endif
     int i = millis();
     // checks for boot.jpg in SD and LittleFS for customization
     int boot_img = 0;
@@ -352,6 +367,9 @@ void boot_screen_anim() {
                 bruceConfig.bgColor,
                 bruceConfig.priColor
             );
+#endif
+#ifdef BOARD_JC3248W535EN
+        tft.present();
 #endif
         if (check(AnyKeyPress)) // If any key or M5 key is pressed, it'll jump the boot screen
         {
@@ -466,6 +484,8 @@ void setup() {
         (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
         (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL)
     );
+    Serial.printf("[FLASH] detected=%u bytes\n", (unsigned)ESP.getFlashChipSize());
+    Serial.printf("[HEAP] free=%u bytes\n", (unsigned)ESP.getFreeHeap());
     Serial.flush();
 
     RAM_LOG("setup-start");
@@ -479,12 +499,40 @@ void setup() {
     bruceConfigPins.rotation = ROTATION;
     setup_gpio();
 #if defined(HAS_SCREEN)
+#ifdef BOARD_JC3248W535EN
+    Serial.printf("[PSRAM] free before gfx=%u\n", (unsigned)ESP.getFreePsram());
+#endif
     tft.init();
+    _post_display_gpio();
     tft.setRotation(bruceConfigPins.rotation);
+#ifdef BOARD_JC3248W535EN
+    Serial.printf("[PSRAM] free after gfx=%u\n", (unsigned)ESP.getFreePsram());
+    Serial.printf(
+        "[DISPLAY] driver inicializado: resolucao=%dx%d rotacao=%u\n",
+        tft.width(),
+        tft.height(),
+        bruceConfigPins.rotation
+    );
+    Serial.printf(
+        "[DISPLAY] controller=AXS15231B bus=QSPI CLK=%d CS=%d D0=%d D1=%d D2=%d D3=%d BL=%d\n",
+        TFT_SCLK,
+        TFT_CS,
+        TFT_D0,
+        TFT_D1,
+        TFT_D2,
+        TFT_D3,
+        TFT_BL
+    );
+    Serial.println("[DISPLAY] init OK");
+    Serial.println("[BRUCE] normal startup resumed");
+#endif
     tft.fillScreen(TFT_BLACK);
     // bruceConfig is not read yet.. just to show something on screen due to long boot time
     tft.setTextColor(TFT_PURPLE, TFT_BLACK);
     tft.drawCentreString("Booting", tft.width() / 2, tft.height() / 2, 1);
+#ifdef BOARD_JC3248W535EN
+    tft.present();
+#endif
     RAM_LOG("first-display-elem"); // first element drawn on screen
 #else
     tft.begin();
@@ -549,6 +597,9 @@ void setup() {
 #if defined(HAS_SCREEN)
     bruceConfig.openThemeFile(bruceConfig.themeFS(), bruceConfig.themePath, false);
     if (!bruceConfig.instantBoot) {
+#ifdef BOARD_JC3248W535EN
+        Serial.println("[BRUCE] splash render");
+#endif
         boot_screen_anim();
         startup_sound();
     }
@@ -571,6 +622,10 @@ void setup() {
     if (bruceConfig.startupApp != "" && !startupApp.startApp(bruceConfig.startupApp)) {
         bruceConfig.setStartupApp("");
     }
+
+#ifdef BOARD_JC3248W535EN
+    Serial.println("[BRUCE] starting display UI");
+#endif
 
     RAM_LOG("setup-end");
 }
@@ -606,6 +661,13 @@ void loop() {
     }
 #endif
 
+#ifdef BOARD_JC3248W535EN
+    static bool mainMenuLogged = false;
+    if (!mainMenuLogged) {
+        Serial.println("[BRUCE] main menu render");
+        mainMenuLogged = true;
+    }
+#endif
     mainMenu.begin();
     delay(1);
 }
